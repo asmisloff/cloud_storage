@@ -12,8 +12,9 @@ public class Test {
                 Thread.sleep(100);
             }
 
-            c.downloadFile(new File("w.txt"));
-            c.uploadFile(new File("record_60102.mp4"));
+            c.uploadFile("Файл для закачивания.txt");
+            c.downloadFile("Файл для скачивания.txt");
+            c.downloadFile("record_60102.zip");
             //c.stop();
         } catch (Exception e) {
             e.printStackTrace();

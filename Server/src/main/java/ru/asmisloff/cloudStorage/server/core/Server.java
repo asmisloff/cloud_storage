@@ -11,6 +11,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 public class Server {
     private final int PORT;
+    private final String ROOT = "./server_files/";
 
     public Server(int port) {
         PORT = port;
@@ -27,7 +28,7 @@ public class Server {
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         protected void initChannel(SocketChannel socketChannel) {
-                            socketChannel.pipeline().addLast(new ServerFileHandler());
+                            socketChannel.pipeline().addLast(new ServerFileHandler(ROOT));
                         }
                     })
             .option(ChannelOption.SO_BACKLOG, 128)
