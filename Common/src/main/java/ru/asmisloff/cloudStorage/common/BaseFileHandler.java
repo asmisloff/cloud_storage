@@ -26,7 +26,7 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
     private final ByteBufProcessor sendFileCmdReader;
     private final ByteBufProcessor serviceReportReader;
 
-    private final String ROOT;
+    private final String ROOT; // Путь к корневой папке
 
     public BaseFileHandler(String root) {
         ROOT = root;
@@ -66,11 +66,19 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
 
     protected abstract void onFileSent(String path);
 
-    public interface ByteBufProcessor {
+    protected void onServiceReportReceived(String msg) {
+        System.out.println(msg);
+    }
+
+    interface ByteBufProcessor {
         void execute(ByteBuf bb) throws Exception;
     }
 
+    /**
+     * Читает командный байт и делегирует работу соотв. обработчику
+     **/
     class Dispatcher implements ByteBufProcessor {
+
         @Override
         public void execute(ByteBuf bb) throws Exception {
             if (bb.readableBytes() < 1) {
@@ -79,12 +87,15 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
             byte cmd = bb.readByte();
             bb.discardReadBytes();
 
+            // TODO: 12.08.2020 Сделать диспетчеризацию через HashMap<CmdMsg, ByteBufProcessor>
             if (cmd == CmdMsg.RECEIVE_FILE.value()) {
                 activeProcessor = receiveFileCmdReader;
             } else if (cmd == CmdMsg.SEND_FILE.value()) {
                 activeProcessor = sendFileCmdReader;
             } else if (cmd == CmdMsg.UPLOADED_SUCCESSFULLY.value()) {
                 activeProcessor = serviceReportReader;
+//            } else if (cmd == CmdMsg.LOGIN.value()) {
+//                activeProcessor = authenticationProcessor;
             } else {
                 throw new Exception("Unknown command message: " + cmd);
             }
@@ -93,7 +104,13 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
+    /**
+     * Считывает из входного канала команду принять файл.
+     * Протокол: <длина имени файла: int> -- <имя файла в utf-8> -- <размер файла: long>
+     * По прочтении команды обработка передается объекту FileReceiver
+     * */
     class ReceiveFileCmdReader implements ByteBufProcessor {
+
         @Override
         public void execute(ByteBuf bb) throws Exception {
             int pathLength = getStrLenIfReady();
@@ -110,6 +127,9 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
+    /**
+     * Читает файл. Имя и длина файла передаются предыдущим обработчиком в метод setup.
+     * */
     class FileReceiver implements ByteBufProcessor {
 
         private long fileSize;
@@ -145,6 +165,10 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
+    /**
+     * Принимает запрос на отправку файла.
+     * Протокол: <длина имени файла: int> -- <Имя файла в utf-8>
+     * */
     class SendFileCmdReader implements ByteBufProcessor {
         @Override
         public void execute(ByteBuf bb) throws Exception {
@@ -159,6 +183,10 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
+    /**
+     * Отправляет файл в выходной канал.
+     * Протокол: <Длина имени файла: int> -- <Имя файла в utf-8> -- <Длина файла: long> -- <файл>
+     * */
     class FileSender implements ByteBufProcessor {
 
         private String path;
@@ -185,12 +213,17 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
-    class ServiceReportReader implements ByteBufProcessor {
+    /**
+     * Читает строку сервисного сообщения или отчета.
+     * Протокол: <длина строки: int> <строка в utf-8>.
+     * Вызывает метод onServiceReportReceived() и передает обработоку канала диспетчеру.
+     * */
+    public class ServiceReportReader implements ByteBufProcessor {
         @Override
         public void execute(ByteBuf bb) throws Exception {
             String msg = readString();
             if (msg != null) {
-                System.out.println(msg);
+                onServiceReportReceived(msg);
                 activeProcessor = dispatcher;
                 activeProcessor.execute(bb);
             }
