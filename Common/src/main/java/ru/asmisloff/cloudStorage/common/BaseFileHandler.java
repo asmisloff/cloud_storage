@@ -100,13 +100,6 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
             byte cmd = bb.readByte();
             bb.discardReadBytes();
 
-            // TODO: 12.08.2020 Сделать диспетчеризацию через HashMap<CmdMsg, ByteBufProcessor>
-//            if (cmd == CmdMsg.RECEIVE_FILE.value()) {
-//                activeProcessor = receiveFileCmdReader;
-//            } else if (cmd == CmdMsg.SEND_FILE.value()) {
-//                activeProcessor = sendFileCmdReader;
-//            } else if (cmd == CmdMsg.UPLOADED_SUCCESSFULLY.value()) {
-//                activeProcessor = serviceReportReader;
             activeProcessor = dispMap.get(cmd);
             if (activeProcessor == null) {
                 throw new Exception("Unknown command message: " + cmd);
