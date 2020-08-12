@@ -8,35 +8,48 @@ import io.netty.util.CharsetUtil;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.HashMap;
 
 public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
 
     protected Channel channel;
     protected final ByteBuf bb;
 
+    protected HashMap<Byte, ByteBufProcessor> dispMap;
+
     /*
     * Объекты-обработчики байтов, поступающих из входного канала.
     * Активный обработчик, завершив свою работу, назначает активным следующий в зависимости от контекста.
     */
-    private ByteBufProcessor activeProcessor;
-    private final ByteBufProcessor dispatcher;
-    private final ByteBufProcessor fileReceiver;
-    private final ByteBufProcessor receiveFileCmdReader;
-    private final ByteBufProcessor fileSender;
-    private final ByteBufProcessor sendFileCmdReader;
-    private final ByteBufProcessor serviceReportReader;
+    protected ByteBufProcessor activeProcessor;
+    protected final ByteBufProcessor dispatcher;
+    protected final ByteBufProcessor fileReceiver;
+    protected final ByteBufProcessor receiveFileCmdReader;
+    protected final ByteBufProcessor fileSender;
+    protected final ByteBufProcessor sendFileCmdReader;
+    protected final ByteBufProcessor serviceReportReader;
 
     private final String ROOT; // Путь к корневой папке
 
     public BaseFileHandler(String root) {
         ROOT = root;
         bb = Unpooled.buffer(2048);
+        dispMap = new HashMap<>(3);
+
         dispatcher = new Dispatcher();
+
         receiveFileCmdReader = new ReceiveFileCmdReader();
+        dispMap.put(CmdMsg.RECEIVE_FILE.value(), receiveFileCmdReader);
+
         fileReceiver = new FileReceiver();
+
         sendFileCmdReader = new SendFileCmdReader();
+        dispMap.put(CmdMsg.SEND_FILE.value(), sendFileCmdReader);
+
         fileSender = new FileSender();
+
         serviceReportReader = new ServiceReportReader();
+        dispMap.put(CmdMsg.SERVICE_REPORT.value(), serviceReportReader);
     }
 
     @Override
@@ -70,7 +83,7 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
         System.out.println(msg);
     }
 
-    interface ByteBufProcessor {
+    protected interface ByteBufProcessor {
         void execute(ByteBuf bb) throws Exception;
     }
 
@@ -88,15 +101,14 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
             bb.discardReadBytes();
 
             // TODO: 12.08.2020 Сделать диспетчеризацию через HashMap<CmdMsg, ByteBufProcessor>
-            if (cmd == CmdMsg.RECEIVE_FILE.value()) {
-                activeProcessor = receiveFileCmdReader;
-            } else if (cmd == CmdMsg.SEND_FILE.value()) {
-                activeProcessor = sendFileCmdReader;
-            } else if (cmd == CmdMsg.UPLOADED_SUCCESSFULLY.value()) {
-                activeProcessor = serviceReportReader;
-//            } else if (cmd == CmdMsg.LOGIN.value()) {
-//                activeProcessor = authenticationProcessor;
-            } else {
+//            if (cmd == CmdMsg.RECEIVE_FILE.value()) {
+//                activeProcessor = receiveFileCmdReader;
+//            } else if (cmd == CmdMsg.SEND_FILE.value()) {
+//                activeProcessor = sendFileCmdReader;
+//            } else if (cmd == CmdMsg.UPLOADED_SUCCESSFULLY.value()) {
+//                activeProcessor = serviceReportReader;
+            activeProcessor = dispMap.get(cmd);
+            if (activeProcessor == null) {
                 throw new Exception("Unknown command message: " + cmd);
             }
 
@@ -113,12 +125,12 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
 
         @Override
         public void execute(ByteBuf bb) throws Exception {
-            int pathLength = getStrLenIfReady();
+            int pathLength = ChannelUtil.getStrLenIfReady(bb);
             if (pathLength == -1 || bb.readableBytes() < 4 + pathLength + 8) {
                 return;
             }
 
-            String path = readString();
+            String path = ChannelUtil.readString(bb);
             long fileSize = bb.readLong();
 
             activeProcessor = fileReceiver;
@@ -172,7 +184,7 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
     class SendFileCmdReader implements ByteBufProcessor {
         @Override
         public void execute(ByteBuf bb) throws Exception {
-            String path = readString();
+            String path = ChannelUtil.readString(bb);
             if (path == null) {
                 return;
             }
@@ -221,41 +233,13 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
     public class ServiceReportReader implements ByteBufProcessor {
         @Override
         public void execute(ByteBuf bb) throws Exception {
-            String msg = readString();
+            String msg = ChannelUtil.readString(bb);
             if (msg != null) {
                 onServiceReportReceived(msg);
                 activeProcessor = dispatcher;
                 activeProcessor.execute(bb);
             }
         }
-    }
-
-    private String readString() {
-        int strLength = getStrLenIfReady();
-
-        if (strLength == -1) {
-            return null;
-        }
-
-        String result = bb.toString(4, strLength, CharsetUtil.UTF_8);
-        bb.skipBytes(4 + strLength);
-        bb.discardReadBytes();
-
-        return result;
-    }
-
-    private int getStrLenIfReady() {
-        int rb = bb.readableBytes();
-        if (rb < 4) {
-            return -1;
-        }
-
-        int strLength = bb.getInt(0);
-        if (rb < 4 + strLength) {
-            return -1;
-        }
-
-        return strLength;
     }
 
 }

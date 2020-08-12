@@ -13,7 +13,7 @@ public class Database {
             conn = DriverManager.getConnection(url);
             System.out.println("Connection to SQLite has been established.");
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            e.printStackTrace();
             disconnect();
         }
     }
@@ -46,6 +46,6 @@ public class Database {
 
     public static void main(String[] args) {
         connect();
-        System.out.println(checkLoginAndPassword("user2", "pwd1"));
+        System.out.println(checkLoginAndPassword("user1", "pwd1"));
     }
 }

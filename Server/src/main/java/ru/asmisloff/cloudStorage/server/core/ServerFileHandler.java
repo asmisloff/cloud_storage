@@ -1,7 +1,7 @@
 package ru.asmisloff.cloudStorage.server.core;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.*;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.CharsetUtil;
 import ru.asmisloff.cloudStorage.common.BaseFileHandler;
 import ru.asmisloff.cloudStorage.common.CmdMsg;
@@ -10,6 +10,7 @@ public class ServerFileHandler extends BaseFileHandler {
 
     public ServerFileHandler(String root) {
         super(root);
+//        dispMap.put(CmdMsg.LOGIN.value(), new AuthenticationProcessor());
     }
 
     @Override
@@ -26,7 +27,7 @@ public class ServerFileHandler extends BaseFileHandler {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         System.out.println("-------------------------------");
-        System.out.println("Network error on client");
+        System.out.println(cause.getMessage());
         System.out.println("-------------------------------");
     }
 
@@ -36,7 +37,7 @@ public class ServerFileHandler extends BaseFileHandler {
         String resp = String.format("SERVICE REPORT: \"%s\" successfully uploaded", path);
         byte[] arr = resp.getBytes(CharsetUtil.UTF_8);
         ByteBuf tmp = channel.alloc().buffer(5 + arr.length);
-        tmp.writeByte(CmdMsg.UPLOADED_SUCCESSFULLY.value());
+        tmp.writeByte(CmdMsg.SERVICE_REPORT.value());
         tmp.writeInt(arr.length);
         tmp.writeBytes(arr);
         channel.writeAndFlush(tmp);
@@ -46,4 +47,5 @@ public class ServerFileHandler extends BaseFileHandler {
     protected void onFileSent(String path) {
         System.out.printf("File sent -- %s\n", path);
     }
+
 }

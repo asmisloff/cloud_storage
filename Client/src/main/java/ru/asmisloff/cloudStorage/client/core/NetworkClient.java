@@ -8,6 +8,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.CharsetUtil;
 import ru.asmisloff.cloudStorage.common.CmdMsg;
+import ru.asmisloff.cloudStorage.common.ChannelUtil;
 
 import java.io.File;
 
@@ -56,7 +57,7 @@ public class NetworkClient {
         }).start();
     }
 
-    void stop() {
+    public void stop() {
         workerGroup.shutdownGracefully();
     }
 
@@ -79,7 +80,15 @@ public class NetworkClient {
             .writeLong(f.length());
         cf.channel().write(bb);
         cf.channel().writeAndFlush(fr).addListener(
-                future -> System.out.printf("File sent -- %s\n", f.getPath()));
+                future -> {
+                    if (future.isSuccess()) {
+                        System.out.printf("File sent -- %s\n", f.getPath());
+                    }
+                    else {
+                        System.out.printf("Error while sending file -- %s\n", f.getPath());
+                        System.out.println(future.cause().getMessage());
+                    }
+                });
     }
 
     public void downloadFile(String path) {
@@ -89,5 +98,12 @@ public class NetworkClient {
         temp.writeInt(arr.length);
         temp.writeBytes(arr);
         channel().writeAndFlush(temp);
+    }
+
+    public void login(String login, String pwd) {
+        ChannelUtil.writeString(channel(),
+                                  CmdMsg.LOGIN.value(),
+                                  String.format("%s/%s",login, pwd),
+                             true);
     }
 }

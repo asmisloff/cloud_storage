@@ -28,6 +28,7 @@ public class Server {
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         protected void initChannel(SocketChannel socketChannel) {
+                            socketChannel.pipeline().addLast(new AuthenticationHandler());
                             socketChannel.pipeline().addLast(new ServerFileHandler(ROOT));
                         }
                     })
@@ -35,6 +36,7 @@ public class Server {
             .childOption(ChannelOption.SO_KEEPALIVE, true);
             ChannelFuture f = bootstrap.bind(PORT).sync();
             System.out.println("Server started");
+            Database.connect();
             f.channel().closeFuture().sync();
         } finally {
             workerGroup.shutdownGracefully();
