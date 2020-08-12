@@ -8,12 +8,14 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.CharsetUtil;
 import ru.asmisloff.cloudStorage.common.CmdMsg;
+import ru.asmisloff.cloudStorage.common.ChannelUtil;
 
 import java.io.File;
 
 public class NetworkClient {
 
     boolean connected;
+    private final String ROOT = "./client_files/";
 
     ChannelFuture cf;
     EventLoopGroup workerGroup;
@@ -30,7 +32,7 @@ public class NetworkClient {
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel(SocketChannel ch) {
-                            ch.pipeline().addLast(new ClientFileHandler());
+                            ch.pipeline().addLast(new ClientFileHandler(ROOT));
                         }
                     });
 
@@ -55,7 +57,7 @@ public class NetworkClient {
         }).start();
     }
 
-    void stop() {
+    public void stop() {
         workerGroup.shutdownGracefully();
     }
 
@@ -67,29 +69,41 @@ public class NetworkClient {
         return connected;
     }
 
-    public void uploadFile(File f) {
+    public void uploadFile(String path) {
+        File f = new File(ROOT + path);
         FileRegion fr = new DefaultFileRegion(f, 0, f.length());
-        byte[] path = f.getPath().getBytes(CharsetUtil.UTF_8);
-        ByteBuf bb = cf.channel().alloc().buffer(1 + 4 + path.length + 8);
-        bb  .writeByte(CmdMsg.UPLOAD.value())
-            .writeInt(path.length)
-            .writeBytes(path)
+        byte[] arr = path.getBytes(CharsetUtil.UTF_8);
+        ByteBuf bb = cf.channel().alloc().buffer(1 + 4 + arr.length + 8);
+        bb  .writeByte(CmdMsg.RECEIVE_FILE.value())
+            .writeInt(arr.length)
+            .writeBytes(arr)
             .writeLong(f.length());
         cf.channel().write(bb);
-        cf.channel().writeAndFlush(fr).addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) {
-                System.out.println("Uploaded");
-            }
-        });
+        cf.channel().writeAndFlush(fr).addListener(
+                future -> {
+                    if (future.isSuccess()) {
+                        System.out.printf("File sent -- %s\n", f.getPath());
+                    }
+                    else {
+                        System.out.printf("Error while sending file -- %s\n", f.getPath());
+                        System.out.println(future.cause().getMessage());
+                    }
+                });
     }
 
-    public void downloadFile(File f) {
+    public void downloadFile(String path) {
         ByteBuf temp = channel().alloc().buffer();
-        temp.writeByte(CmdMsg.DOWNLOAD.value());
-        byte[] path = f.getPath().getBytes(CharsetUtil.UTF_8);
-        temp.writeInt(path.length);
-        temp.writeBytes(path);
+        temp.writeByte(CmdMsg.SEND_FILE.value());
+        byte[] arr = path.getBytes(CharsetUtil.UTF_8);
+        temp.writeInt(arr.length);
+        temp.writeBytes(arr);
         channel().writeAndFlush(temp);
+    }
+
+    public void login(String login, String pwd) {
+        ChannelUtil.writeString(channel(),
+                                  CmdMsg.LOGIN.value(),
+                                  String.format("%s/%s",login, pwd),
+                             true);
     }
 }

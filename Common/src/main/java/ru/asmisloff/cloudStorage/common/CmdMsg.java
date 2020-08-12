@@ -4,15 +4,15 @@ package ru.asmisloff.cloudStorage.common;
 public enum CmdMsg {
     LOGIN((byte)0),
     LOGOUT((byte)1),
-    INFO((byte)2),
-    DOWNLOAD((byte)4),
-    UPLOAD((byte)5),
-    UNDEFINED((byte)6),
-    UPLOADED_SUCCESSFULLY((byte)7);
+    LIST((byte)2),
+    SEND_FILE((byte)4),
+    RECEIVE_FILE((byte)5),
+    SERVICE_REPORT((byte)6),
+    ERROR((byte)7);
 
     private byte msgCode;
 
-    private CmdMsg(byte code) {
+    CmdMsg(byte code) {
         msgCode = code;
     }
 
