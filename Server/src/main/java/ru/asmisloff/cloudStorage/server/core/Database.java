@@ -14,12 +14,16 @@ public class Database {
             System.out.println("Connection to SQLite has been established.");
         } catch (SQLException e) {
             System.out.println(e.getMessage());
-            if (conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException throwables) {
-                    throwables.printStackTrace();
-                }
+            disconnect();
+        }
+    }
+
+    public static void disconnect() {
+        if (conn != null) {
+            try {
+                conn.close();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
             }
         }
     }
