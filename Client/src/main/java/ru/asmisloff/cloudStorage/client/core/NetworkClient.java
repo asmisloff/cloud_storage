@@ -7,19 +7,25 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.CharsetUtil;
-import ru.asmisloff.cloudStorage.common.CmdMsg;
 import ru.asmisloff.cloudStorage.common.ChannelUtil;
+import ru.asmisloff.cloudStorage.common.CmdMsg;
+import ru.asmisloff.cloudStorage.common.FileHandlerEventListener;
 
 import java.io.File;
 
 public class NetworkClient {
 
     boolean connected;
+
     private final String ROOT = "./client_files/";
 
     ChannelFuture cf;
     EventLoopGroup workerGroup;
-    public NetworkClient() {
+    ClientFileHandler handler;
+    private FileHandlerEventListener listener;
+
+    public NetworkClient(FileHandlerEventListener listener) {
+        this.listener = listener;
         connected = false;
     }
 
@@ -32,7 +38,7 @@ public class NetworkClient {
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel(SocketChannel ch) {
-                            ch.pipeline().addLast(new ClientFileHandler(ROOT));
+                            ch.pipeline().addLast(new ClientFileHandler(ROOT, listener));
                         }
                     });
 
@@ -63,6 +69,10 @@ public class NetworkClient {
 
     public Channel channel() {
         return cf.channel();
+    }
+
+    public String getRoot() {
+        return ROOT;
     }
 
     public boolean isConnected() {
@@ -106,4 +116,11 @@ public class NetworkClient {
                                   String.format("%s/%s",login, pwd),
                              true);
     }
+
+    public void requestFileInfo() {
+        ByteBuf bb = channel().alloc().buffer(1);
+        bb.writeByte(CmdMsg.FILE_INFO.value());
+        channel().writeAndFlush(bb);
+    }
+
 }

@@ -2,15 +2,39 @@ package ru.asmisloff.cloudStorage.server.core;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.util.CharsetUtil;
 import ru.asmisloff.cloudStorage.common.BaseFileHandler;
+import ru.asmisloff.cloudStorage.common.ChannelUtil;
 import ru.asmisloff.cloudStorage.common.CmdMsg;
+import ru.asmisloff.cloudStorage.common.FileHandlerEventListener;
+
+import java.io.File;
 
 public class ServerFileHandler extends BaseFileHandler {
 
-    public ServerFileHandler(String root) {
-        super(root);
-//        dispMap.put(CmdMsg.LOGIN.value(), new AuthenticationProcessor());
+    /**
+     * Отправляет клиенту список файлов в форме строки с разделителями:
+     * file1\size1\\file2\size\file3\[dir]\file4\size4
+     * */
+    private class FileInfoSender implements ByteBufProcessor {
+
+        @Override
+        public void execute(ByteBuf bb) throws Exception {
+            File[] files = new File(ROOT).listFiles();
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < files.length; i++) {
+                File f = files[i];
+                String attr = f.isDirectory() ? "[DIR]" : String.valueOf(f.length());
+                b.append(String.format("%s\\%s\\\\", f.getName(), attr));
+            }
+            ChannelUtil.writeString(channel, CmdMsg.FILE_INFO.value(), b.toString(), true);
+
+            activeProcessor = dispatcher;
+        }
+    }
+
+    public ServerFileHandler(String root, FileHandlerEventListener listener) {
+        super(root, listener);
+        dispMap.put(CmdMsg.FILE_INFO.value(), new FileInfoSender());
     }
 
     @Override
@@ -29,23 +53,6 @@ public class ServerFileHandler extends BaseFileHandler {
         System.out.println("-------------------------------");
         System.out.println(cause.getMessage());
         System.out.println("-------------------------------");
-    }
-
-    @Override
-    protected void onFileReceived(String path) {
-        System.out.printf("File received -- %s\n", path);
-        String resp = String.format("SERVICE REPORT: \"%s\" successfully uploaded", path);
-        byte[] arr = resp.getBytes(CharsetUtil.UTF_8);
-        ByteBuf tmp = channel.alloc().buffer(5 + arr.length);
-        tmp.writeByte(CmdMsg.SERVICE_REPORT.value());
-        tmp.writeInt(arr.length);
-        tmp.writeBytes(arr);
-        channel.writeAndFlush(tmp);
-    }
-
-    @Override
-    protected void onFileSent(String path) {
-        System.out.printf("File sent -- %s\n", path);
     }
 
 }

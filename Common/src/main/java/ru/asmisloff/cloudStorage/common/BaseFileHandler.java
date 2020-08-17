@@ -29,10 +29,15 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
     protected final ByteBufProcessor sendFileCmdReader;
     protected final ByteBufProcessor serviceReportReader;
 
-    private final String ROOT; // Путь к корневой папке
+    protected String ROOT; // Путь к корневой папке
 
-    public BaseFileHandler(String root) {
+    protected FileHandlerEventListener listener;
+
+    public BaseFileHandler(String root, FileHandlerEventListener listener) {
         ROOT = root;
+        this.listener = listener;
+        this.listener.setHandler(this);
+
         bb = Unpooled.buffer(2048);
         dispMap = new HashMap<>(3);
 
@@ -75,12 +80,20 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
         cause.printStackTrace();
     }
 
-    protected abstract void onFileReceived(String path);
+    public Channel channel() {
+        return channel;
+    }
 
-    protected abstract void onFileSent(String path);
+    public String getROOT() {
+        return ROOT;
+    }
 
-    protected void onServiceReportReceived(String msg) {
-        System.out.println(msg);
+    public void setROOT(String ROOT) {
+        this.ROOT = ROOT;
+    }
+
+    public FileHandlerEventListener getListener() {
+        return listener;
     }
 
     protected interface ByteBufProcessor {
@@ -154,7 +167,9 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
                 raf.getChannel().force(true);
                 raf.close();
 
-                onFileReceived(path);
+                if (listener != null) {
+                    listener.onFileReceived(path);
+                }
 
                 activeProcessor = dispatcher;
                 activeProcessor.execute(bb);
@@ -208,7 +223,7 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
                     .writeLong(f.length());
             channel.write(temp);
             channel.writeAndFlush(fr).addListener(
-                    future -> onFileSent(path));
+                    future -> listener.onFileSent(path));
             activeProcessor = dispatcher;
             activeProcessor.execute(bb);
         }
@@ -228,7 +243,7 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
         public void execute(ByteBuf bb) throws Exception {
             String msg = ChannelUtil.readString(bb);
             if (msg != null) {
-                onServiceReportReceived(msg);
+                listener.onServiceReportReceived(msg);
                 activeProcessor = dispatcher;
                 activeProcessor.execute(bb);
             }

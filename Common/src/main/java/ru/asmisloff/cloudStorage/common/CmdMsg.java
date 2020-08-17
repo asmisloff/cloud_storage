@@ -4,7 +4,7 @@ package ru.asmisloff.cloudStorage.common;
 public enum CmdMsg {
     LOGIN((byte)0),
     LOGOUT((byte)1),
-    LIST((byte)2),
+    FILE_INFO((byte)2),
     SEND_FILE((byte)4),
     RECEIVE_FILE((byte)5),
     SERVICE_REPORT((byte)6),

@@ -8,13 +8,16 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import ru.asmisloff.cloudStorage.common.FileHandlerEventListener;
 
 public class Server {
     private final int PORT;
     private final String ROOT = "./server_files/";
+    private FileHandlerEventListener listenerFabric;
 
-    public Server(int port) {
+    public Server(int port, FileHandlerEventListener listener) {
         PORT = port;
+        listenerFabric = listener;
     }
 
     public void run() throws Exception {
@@ -28,8 +31,9 @@ public class Server {
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         protected void initChannel(SocketChannel socketChannel) {
-                            socketChannel.pipeline().addLast(new AuthenticationHandler());
-                            socketChannel.pipeline().addLast(new ServerFileHandler(ROOT));
+                            socketChannel.pipeline().addLast(new AuthenticationHandler(listenerFabric.newInstance()));
+                            socketChannel.pipeline().addLast(
+                                    new ServerFileHandler(ROOT, listenerFabric.newInstance()));
                         }
                     })
             .option(ChannelOption.SO_BACKLOG, 128)
@@ -45,6 +49,6 @@ public class Server {
     }
 
     public static void main(String[] args) throws Exception {
-        new Server(8181).run();
+        new Server(8181, new ServerFileHandlerEventListener()).run();
     }
 }
