@@ -18,7 +18,7 @@ public class ServerFileHandler extends BaseFileHandler {
     private class FileInfoSender implements ByteBufProcessor {
 
         @Override
-        public void execute(ByteBuf bb) throws Exception {
+        public void execute(ByteBuf bb) {
             File[] files = new File(ROOT).listFiles();
             StringBuilder b = new StringBuilder();
             for (int i = 0; i < files.length; i++) {

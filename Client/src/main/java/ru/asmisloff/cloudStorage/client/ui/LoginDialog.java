@@ -32,7 +32,9 @@ public class LoginDialog extends JDialog {
 
     private void onBtnLoginClicked() {
         NetworkClient client = controller.getClient();
-        client.start(tfHost.getText(), Integer.parseInt(tfPort.getText()));
+        if (!client.isConnected()) {
+            client.start(tfHost.getText(), Integer.parseInt(tfPort.getText()));
+        }
         while (!client.isConnected()) {
             try {
                 Thread.sleep(100);

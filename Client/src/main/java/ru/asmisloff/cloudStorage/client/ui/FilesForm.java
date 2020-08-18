@@ -2,20 +2,23 @@ package ru.asmisloff.cloudStorage.client.ui;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.File;
 
 public class FilesForm extends JDialog {
     private JPanel contentPane;
     private JButton btnCopy;
-    private JButton btnExit;
+    private JButton btnUpdate;
     private JTable tblLocal;
     private JTable tblRemote;
     private FileTableModel localTblModel;
     private FileTableModel remoteTblModel;
-    private String[] data;
+    private final String[] data;
     private File clientRoot;
-    private UIController controller;
+    private final UIController controller;
+    private final Cursor defaultCursor;
+    private final Cursor waitCursor;
 
     public FilesForm(UIController controller) {
         this.controller = controller;
@@ -28,12 +31,21 @@ public class FilesForm extends JDialog {
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         btnCopy.addActionListener(this::onBtnCopyClicked);
+        btnUpdate.addActionListener(this::onBtnUpdateClicked);
+        defaultCursor = getCursor();
+        waitCursor = new Cursor(Cursor.WAIT_CURSOR);
 
         initTables();
         updateLocalTable();
     }
 
+    private void onBtnUpdateClicked(ActionEvent actionEvent) {
+        updateLocalTable();
+        controller.getClient().requestFileInfo();
+    }
+
     private void onBtnCopyClicked(ActionEvent actionEvent) {
+        setCursor(waitCursor);
         String fname = (String) localTblModel.getValueAt(tblLocal.getSelectedRow(), 0);
         controller.getClient().uploadFile(fname);
     }
@@ -46,9 +58,16 @@ public class FilesForm extends JDialog {
         remoteTblModel.setColumnIdentifiers(columns);
         tblLocal.setModel(localTblModel);
         tblRemote.setModel(remoteTblModel);
+        tblLocal.getColumn("Name").setPreferredWidth(300);
+        tblLocal.getColumn("Size").setPreferredWidth(50);
+        tblRemote.getColumn("Name").setPreferredWidth(300);
+        tblRemote.getColumn("Size").setPreferredWidth(50);
     }
 
     public void updateRemoteTable(String fileInfo) {
+        if (fileInfo.isEmpty()) {
+            return;
+        }
         remoteTblModel.setRowCount(0);
         String[] tokens = fileInfo.split("\\\\\\\\");
         for (int i = 0; i < tokens.length; i++) {
@@ -76,6 +95,10 @@ public class FilesForm extends JDialog {
     public void dispose() {
         super.dispose();
         System.exit(0);
+    }
+
+    public void resetCursor() {
+        setCursor(defaultCursor);
     }
 
     private class FileTableModel extends DefaultTableModel {

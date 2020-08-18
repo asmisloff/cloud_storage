@@ -10,7 +10,7 @@ public class UIController extends FileHandlerEventListener {
     private LoginDialog loginDialog;
     private FilesForm filesForm;
 
-    private NetworkClient client;
+    private final NetworkClient client;
     public NetworkClient getClient() {
         return client;
     }
@@ -33,7 +33,7 @@ public class UIController extends FileHandlerEventListener {
 
             while (filesForm == null) {
                 try {
-                    Thread.sleep(10);
+                    Thread.sleep(100);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -42,7 +42,8 @@ public class UIController extends FileHandlerEventListener {
             client.requestFileInfo();
         } else if (msg.equals("Authentication rejected")) {
             JOptionPane.showMessageDialog(loginDialog, "Authentication rejected");
-        } else {
+        } else if (msg.contains("successfully uploaded")) {
+            filesForm.resetCursor();
             client.requestFileInfo();
         }
     }
