@@ -1,9 +1,10 @@
 package ru.asmisloff.cloudStorage.client.ui;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
+import java.awt.event.*;
 import java.io.File;
 
 public class FilesForm extends JDialog {
@@ -27,11 +28,11 @@ public class FilesForm extends JDialog {
         setContentPane(contentPane);
         setModal(true);
         getRootPane().setDefaultButton(btnCopy);
-
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         btnCopy.addActionListener(this::onBtnCopyClicked);
         btnUpdate.addActionListener(this::onBtnUpdateClicked);
+
         defaultCursor = getCursor();
         waitCursor = new Cursor(Cursor.WAIT_CURSOR);
 
@@ -45,27 +46,112 @@ public class FilesForm extends JDialog {
     }
 
     private void onBtnCopyClicked(ActionEvent actionEvent) {
-        setCursor(waitCursor);
-        String fname = (String) localTblModel.getValueAt(tblLocal.getSelectedRow(), 0);
-        controller.getClient().uploadFile(fname);
+        int cnt;
+        if ((cnt = tblLocal.getSelectedRowCount()) > 0) {
+            setCursor(waitCursor);
+            int[] sr = tblLocal.getSelectedRows();
+            for (int i = 0; i < cnt; i++) {
+                String fname = (String) localTblModel.getValueAt(sr[i], 0);
+                controller.getClient().uploadFile(fname);
+            }
+            tblLocal.clearSelection();
+        } else if ((cnt = tblRemote.getSelectedRowCount()) > 0) {
+            setCursor(waitCursor);
+            int[] sr = tblRemote.getSelectedRows();
+            for (int i = 0; i < cnt; i++) {
+                String fname = (String) remoteTblModel.getValueAt(sr[i], 0);
+                controller.getClient().downloadFile(fname);
+            }
+            tblRemote.clearSelection();
+        }
     }
 
     private void initTables() {
         Object[] columns = {"Name","Size"};
+        DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
+        rightRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
+        rightRenderer.setBorder(BorderFactory.createEmptyBorder(0,0,0,10));
+
         localTblModel = new FileTableModel();
-        remoteTblModel = new FileTableModel();
-        localTblModel.setColumnIdentifiers(new Object[] {"Name","Size"});
-        remoteTblModel.setColumnIdentifiers(columns);
+        localTblModel.setColumnIdentifiers(columns);
         tblLocal.setModel(localTblModel);
-        tblRemote.setModel(remoteTblModel);
         tblLocal.getColumn("Name").setPreferredWidth(300);
-        tblLocal.getColumn("Size").setPreferredWidth(50);
+        tblLocal.getColumn("Size").setPreferredWidth(30);
+        tblLocal.getColumn("Size").setCellRenderer(rightRenderer);
+        tblLocal.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if (e.getKeyCode() == 27) {
+                    tblLocal.clearSelection();
+                }
+            }
+        });
+        tblLocal.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int btn = e.getButton();
+                switch (btn) {
+                    case 1:
+                        tblRemote.clearSelection();
+                        int r = tblLocal.rowAtPoint(e.getPoint());
+                        if (r == -1) {
+                            tblLocal.clearSelection();
+                        }
+                        break;
+                    case 3:
+                        tblLocal.clearSelection();
+                        break;
+                }
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                tblRemote.clearSelection();
+            }
+        });
+
+        remoteTblModel = new FileTableModel();
+        remoteTblModel.setColumnIdentifiers(columns);
+        tblRemote.setModel(remoteTblModel);
         tblRemote.getColumn("Name").setPreferredWidth(300);
-        tblRemote.getColumn("Size").setPreferredWidth(50);
+        tblRemote.getColumn("Size").setPreferredWidth(30);
+        tblRemote.getColumn("Size").setCellRenderer(rightRenderer);
+        tblRemote.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if (e.getKeyCode() == 27) {
+                    tblRemote.clearSelection();
+                }
+            }
+        });
+        tblRemote.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int btn = e.getButton();
+                switch (btn) {
+                    case 1:
+                        tblLocal.clearSelection();
+                        int r = tblRemote.rowAtPoint(e.getPoint());
+                        if (r == -1) {
+                            tblRemote.clearSelection();
+                        }
+                        break;
+                    case 3:
+                        tblRemote.clearSelection();
+                        break;
+                }
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                tblLocal.clearSelection();
+            }
+        });
     }
 
     public void updateRemoteTable(String fileInfo) {
         if (fileInfo.isEmpty()) {
+            remoteTblModel.setRowCount(0);
             return;
         }
         remoteTblModel.setRowCount(0);

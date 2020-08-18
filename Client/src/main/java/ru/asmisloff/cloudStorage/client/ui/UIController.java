@@ -49,6 +49,13 @@ public class UIController extends FileHandlerEventListener {
     }
 
     @Override
+    public void onFileReceived(String path) {
+        super.onFileReceived(path);
+        filesForm.resetCursor();
+        filesForm.updateLocalTable();
+    }
+
+    @Override
     public void onFileInfoReceived(String fileInfo) {
         log(String.format("FileInfo received: %s\n", fileInfo));
         filesForm.updateRemoteTable(fileInfo);

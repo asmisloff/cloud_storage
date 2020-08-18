@@ -222,9 +222,11 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
                     .writeBytes(bytePath)
                     .writeLong(f.length());
             channel.write(temp);
+            // TODO: 19.08.2020 Решить проблему с разделяемым значением path
             channel.writeAndFlush(fr).addListener(
                     future -> listener.onFileSent(path));
             activeProcessor = dispatcher;
+            System.out.println(path);
             activeProcessor.execute(bb);
         }
 
