@@ -39,4 +39,8 @@ public class FileHandlerEventListener {
     public void setHandler(BaseFileHandler handler) {
         this.handler = handler;
     }
+
+    public void onFileDeleted(String path) {
+        log("File deleted -- " + path);
+    }
 }

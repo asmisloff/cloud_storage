@@ -6,6 +6,9 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class FilesForm extends JDialog {
     private JPanel contentPane;
@@ -13,6 +16,7 @@ public class FilesForm extends JDialog {
     private JButton btnUpdate;
     private JTable tblLocal;
     private JTable tblRemote;
+    private JButton btnDelete;
     private FileTableModel localTblModel;
     private FileTableModel remoteTblModel;
     private final String[] data;
@@ -32,12 +36,43 @@ public class FilesForm extends JDialog {
 
         btnCopy.addActionListener(this::onBtnCopyClicked);
         btnUpdate.addActionListener(this::onBtnUpdateClicked);
+        btnDelete.addActionListener(this::onBtnDeleteClicked);
 
         defaultCursor = getCursor();
         waitCursor = new Cursor(Cursor.WAIT_CURSOR);
 
         initTables();
         updateLocalTable();
+    }
+
+    private void onBtnDeleteClicked(ActionEvent actionEvent) {
+        int cnt;
+
+        if ((cnt = tblLocal.getSelectedRowCount()) > 0) {
+            setCursor(waitCursor);
+            int[] sr = tblLocal.getSelectedRows();
+            for (int i = 0; i < cnt; i++) {
+                String fname = (String) localTblModel.getValueAt(sr[i], 0);
+                try {
+                    Files.deleteIfExists(Paths.get(controller.getClient().getRoot() + fname));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            updateLocalTable();
+            resetCursor();
+            return;
+        }
+
+        if ((cnt = tblRemote.getSelectedRowCount()) > 0) {
+            int[] sr = tblRemote.getSelectedRows();
+            for (int i = 0; i < cnt; i++) {
+                String fname = (String) remoteTblModel.getValueAt(sr[i], 0);
+                controller.getClient().deleteFile(fname);
+            }
+            tblRemote.clearSelection();
+            return;
+        }
     }
 
     private void onBtnUpdateClicked(ActionEvent actionEvent) {
@@ -47,24 +82,28 @@ public class FilesForm extends JDialog {
 
     private void onBtnCopyClicked(ActionEvent actionEvent) {
         int cnt;
+
         if ((cnt = tblLocal.getSelectedRowCount()) > 0) {
             setCursor(waitCursor);
             int[] sr = tblLocal.getSelectedRows();
             for (int i = 0; i < cnt; i++) {
                 String fname = (String) localTblModel.getValueAt(sr[i], 0);
-//                sleep(100);
                 controller.getClient().uploadFile(fname);
             }
             tblLocal.clearSelection();
-        } else if ((cnt = tblRemote.getSelectedRowCount()) > 0) {
+//            controller.getClient().requestFileInfo();
+            return;
+        }
+
+        if ((cnt = tblRemote.getSelectedRowCount()) > 0) {
             setCursor(waitCursor);
             int[] sr = tblRemote.getSelectedRows();
             for (int i = 0; i < cnt; i++) {
                 String fname = (String) remoteTblModel.getValueAt(sr[i], 0);
-//                sleep(100);
                 controller.getClient().downloadFile(fname);
             }
             tblRemote.clearSelection();
+            return;
         }
     }
 

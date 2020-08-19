@@ -17,6 +17,7 @@ public class ClientFileHandler extends BaseFileHandler {
             if (s != null) {
                 listener.onFileInfoReceived(s);
                 activeProcessor = dispatcher;
+                activeProcessor.execute(bb);
             }
         }
     }

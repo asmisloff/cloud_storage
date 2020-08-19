@@ -45,6 +45,8 @@ public class UIController extends FileHandlerEventListener {
         } else if (msg.contains("successfully uploaded")) {
             filesForm.resetCursor();
             client.requestFileInfo();
+        } else if (msg.contains("deleted")) {
+            client.requestFileInfo();
         }
     }
 

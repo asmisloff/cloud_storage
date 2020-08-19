@@ -12,11 +12,8 @@ public class ChannelUtil {
         tmp.writeByte(cmdByte);
         tmp.writeInt(bs.length);
         tmp.writeBytes(bs);
-        if (flush) {
-            return channel.writeAndFlush(tmp);
-        } else {
-            return channel.write(tmp);
-        }
+        ChannelFuture f = flush ? channel.writeAndFlush(tmp) : channel.write(tmp);
+        return f;
     }
 
     public static String readString(ByteBuf bb) {

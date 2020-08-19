@@ -8,7 +8,8 @@ public enum CmdMsg {
     SEND_FILE((byte)4),
     RECEIVE_FILE((byte)5),
     SERVICE_REPORT((byte)6),
-    ERROR((byte)7);
+    ERROR((byte)7),
+    DELETE((byte)8);
 
     private byte msgCode;
 

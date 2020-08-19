@@ -123,4 +123,7 @@ public class NetworkClient {
         channel().writeAndFlush(bb);
     }
 
+    public void deleteFile(String fname) {
+        ChannelUtil.writeString(channel(), CmdMsg.DELETE.value(), fname, true);
+    }
 }

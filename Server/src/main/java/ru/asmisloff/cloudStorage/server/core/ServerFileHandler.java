@@ -8,6 +8,8 @@ import ru.asmisloff.cloudStorage.common.CmdMsg;
 import ru.asmisloff.cloudStorage.common.FileHandlerEventListener;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class ServerFileHandler extends BaseFileHandler {
 
@@ -18,7 +20,7 @@ public class ServerFileHandler extends BaseFileHandler {
     private class FileInfoSender implements ByteBufProcessor {
 
         @Override
-        public void execute(ByteBuf bb) {
+        public void execute(ByteBuf bb) throws Exception {
             File[] files = new File(ROOT).listFiles();
             StringBuilder b = new StringBuilder();
             for (int i = 0; i < files.length; i++) {
@@ -29,12 +31,31 @@ public class ServerFileHandler extends BaseFileHandler {
             ChannelUtil.writeString(channel, CmdMsg.FILE_INFO.value(), b.toString(), true);
 
             activeProcessor = dispatcher;
+            activeProcessor.execute(bb);
+        }
+    }
+
+    private class FileDeleter implements ByteBufProcessor {
+        @Override
+        public void execute(ByteBuf bb) throws Exception {
+            String path = ChannelUtil.readString(bb);
+            String msg;
+            if (Files.deleteIfExists(Paths.get(ROOT + path))) {
+                msg = String.format("File \"%s\" deleted", path);
+            } else {
+                msg = String.format("File \"%s\" can't be deleted", path);
+            }
+            ChannelUtil.writeString(channel, CmdMsg.SERVICE_REPORT.value(), msg, true);
+            listener.onFileDeleted(path);
+            activeProcessor = dispatcher;
+            activeProcessor.execute(bb);
         }
     }
 
     public ServerFileHandler(String root, FileHandlerEventListener listener) {
         super(root, listener);
         dispMap.put(CmdMsg.FILE_INFO.value(), new FileInfoSender());
+        dispMap.put(CmdMsg.DELETE.value(), new FileDeleter());
     }
 
     @Override
