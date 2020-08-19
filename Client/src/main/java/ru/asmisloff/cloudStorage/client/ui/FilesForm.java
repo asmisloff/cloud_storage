@@ -52,6 +52,7 @@ public class FilesForm extends JDialog {
             int[] sr = tblLocal.getSelectedRows();
             for (int i = 0; i < cnt; i++) {
                 String fname = (String) localTblModel.getValueAt(sr[i], 0);
+//                sleep(100);
                 controller.getClient().uploadFile(fname);
             }
             tblLocal.clearSelection();
@@ -60,6 +61,7 @@ public class FilesForm extends JDialog {
             int[] sr = tblRemote.getSelectedRows();
             for (int i = 0; i < cnt; i++) {
                 String fname = (String) remoteTblModel.getValueAt(sr[i], 0);
+//                sleep(100);
                 controller.getClient().downloadFile(fname);
             }
             tblRemote.clearSelection();

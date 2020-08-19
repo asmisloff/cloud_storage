@@ -222,11 +222,23 @@ public abstract class BaseFileHandler extends ChannelInboundHandlerAdapter {
                     .writeBytes(bytePath)
                     .writeLong(f.length());
             channel.write(temp);
-            // TODO: 19.08.2020 Решить проблему с разделяемым значением path
-            channel.writeAndFlush(fr).addListener(
-                    future -> listener.onFileSent(path));
+
+            /*
+                * CachedChannelFutureListener использован здесь вместо стандартного ChannelFutureListener,
+                * чтобы запомнить в нем текущее состояние поля path.
+                * При последующих запусках fileSender значение поля path будет меняться, и при пакетном скачивании
+                * файлов listener.onFileSent(path) будет логировать тот path, который актуален в данный момент.
+                * Это может быть уже не тот path.
+                * CachedChannelFutureListener решает эту проблему путем кэширования правильного значения.
+            */
+            channel.writeAndFlush(fr).addListener(new CachedChannelFutureListener(path) {
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    listener.onFileSent(getMsg());
+                }
+            });
+
             activeProcessor = dispatcher;
-            System.out.println(path);
             activeProcessor.execute(bb);
         }
 
