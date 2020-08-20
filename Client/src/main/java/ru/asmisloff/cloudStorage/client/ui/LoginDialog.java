@@ -27,7 +27,7 @@ public class LoginDialog extends JDialog {
 
         btnLogin.addActionListener(e -> onBtnLoginClicked());
 
-        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
     }
 
     private void onBtnLoginClicked() {

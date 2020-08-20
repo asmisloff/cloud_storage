@@ -12,6 +12,9 @@ import ru.asmisloff.cloudStorage.common.CmdMsg;
 import ru.asmisloff.cloudStorage.common.FileHandlerEventListener;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class NetworkClient {
 
@@ -24,9 +27,12 @@ public class NetworkClient {
     ClientFileHandler handler;
     private FileHandlerEventListener listener;
 
-    public NetworkClient(FileHandlerEventListener listener) {
+    public NetworkClient(FileHandlerEventListener listener) throws IOException {
         this.listener = listener;
         connected = false;
+        if (Files.notExists(Paths.get(ROOT))) {
+            Files.createDirectory(Paths.get(ROOT));
+        }
     }
 
     private void run(String host, int port) throws Exception {

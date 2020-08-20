@@ -19,7 +19,7 @@ public class ServerFileHandlerEventListener extends FileHandlerEventListener {
         super.onAuthenticationAccepted(login, pwd);
         String newRoot = handler.getROOT() + login + "/";
         handler.setROOT(newRoot);
-        System.out.println("newRoot = " + handler.getROOT());
+        System.out.println("ROOT = " + handler.getROOT());
         File f = new File(newRoot);
         if (!f.exists()) {
             f.mkdir();

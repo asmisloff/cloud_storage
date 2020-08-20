@@ -4,19 +4,25 @@ import ru.asmisloff.cloudStorage.client.core.NetworkClient;
 import ru.asmisloff.cloudStorage.common.FileHandlerEventListener;
 
 import javax.swing.*;
+import java.io.IOException;
 
 public class UIController extends FileHandlerEventListener {
 
     private LoginDialog loginDialog;
     private FilesForm filesForm;
 
-    private final NetworkClient client;
+    private NetworkClient client;
     public NetworkClient getClient() {
         return client;
     }
 
     public UIController() {
-        client = new NetworkClient(this);
+        try {
+            client = new NetworkClient(this);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
     }
 
     @Override

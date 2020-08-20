@@ -10,6 +10,10 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import ru.asmisloff.cloudStorage.common.FileHandlerEventListener;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
 public class Server {
     private final int PORT;
     private final String ROOT = "./server_files/";
@@ -18,6 +22,14 @@ public class Server {
     public Server(int port, FileHandlerEventListener listener) {
         PORT = port;
         listenerFabric = listener;
+        if (Files.notExists(Paths.get(ROOT))) {
+            try {
+                Files.createDirectory(Paths.get(ROOT));
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(-1);
+            }
+        }
     }
 
     public void run() throws Exception {

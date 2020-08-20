@@ -84,21 +84,20 @@ public class FilesForm extends JDialog {
         int cnt;
 
         if ((cnt = tblLocal.getSelectedRowCount()) > 0) {
-            setCursor(waitCursor);
             int[] sr = tblLocal.getSelectedRows();
             for (int i = 0; i < cnt; i++) {
+                setCursor(waitCursor);
                 String fname = (String) localTblModel.getValueAt(sr[i], 0);
                 controller.getClient().uploadFile(fname);
             }
             tblLocal.clearSelection();
-//            controller.getClient().requestFileInfo();
             return;
         }
 
         if ((cnt = tblRemote.getSelectedRowCount()) > 0) {
-            setCursor(waitCursor);
             int[] sr = tblRemote.getSelectedRows();
             for (int i = 0; i < cnt; i++) {
+                setCursor(waitCursor);
                 String fname = (String) remoteTblModel.getValueAt(sr[i], 0);
                 controller.getClient().downloadFile(fname);
             }
